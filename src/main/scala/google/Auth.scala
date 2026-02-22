@@ -6,13 +6,15 @@ import java.net.URI
 import scala.io.StdIn
 import java.nio.file.{Paths, Files}
 import spray.json._
+import com.github.nscala_time.time.Imports.*
 
-import AccessTokenResponseProtocol._
+import GoogleAccessTokenAuthCodeProtocol._
+import GoogleAccessTokenRefreshTokenProtocol._
 import utils.writeToFile
 
 val codeVerifier = "hello!"
 
-def getAuthToken(clientId: String) =
+def getAuthorisationCode(clientId: String): String =
   val queryParams = Map(
     "client_id" -> clientId,
     "redirect_uri" -> uri"http://127.0.0.1",
@@ -25,19 +27,56 @@ def getAuthToken(clientId: String) =
   println(s"Visit $url and then paste the token below:")
   StdIn.readLine()
 
-def getAccessTokenResponse(
+def getAccessTokenResponseFromAuthCode(
     clientId: String,
     clientSecret: String,
-    token: String
-): GoogleAccessTokenResponse =
+    authCode: String
+): GoogleTokens =
   val queryParams = Map(
     "client_id" -> clientId,
     "client_secret" -> clientSecret,
-    "code" -> token,
+    "code" -> authCode,
     "grant_type" -> "authorization_code",
     "redirect_uri" -> "http://127.0.0.1",
     "code_verifier" -> codeVerifier
   )
   val url = uri"https://oauth2.googleapis.com/token?$queryParams"
-  val response = quickRequest.post(url).send().body
-  response.parseJson.convertTo[GoogleAccessTokenResponse]
+  val response = quickRequest
+    .post(url)
+    .send()
+    .body
+    .parseJson
+    .convertTo[GoogleAccessTokenAuthCodeResponse]
+  GoogleTokens(
+    response.access_token,
+    DateTime.now() + response.expires_in.minutes,
+    response.refresh_token
+  )
+
+def getAccessTokenResponseFromRefreshToken(
+    clientId: String,
+    clientSecret: String,
+    refreshToken: String
+): GoogleTokens =
+  val queryParams = Map(
+    "client_id" -> clientId,
+    "client_secret" -> clientSecret,
+    "refresh_token" -> refreshToken,
+    "grant_type" -> "refresh_token",
+    "redirect_uri" -> "http://127.0.0.1"
+  )
+  val url = uri"https://oauth2.googleapis.com/token?$queryParams"
+  val response = quickRequest
+    .post(url)
+    .send()
+    .body
+    .parseJson
+    .convertTo[GoogleAccessTokenRefreshTokenResponse]
+  GoogleTokens(
+    response.access_token,
+    DateTime.now() + response.expires_in.minutes,
+    refreshToken
+  )
+
+def shouldRefreshToken(tokens: GoogleTokens): Boolean =
+  DateTime.now() >= tokens.accessTokenExpires

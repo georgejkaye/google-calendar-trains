@@ -1,16 +1,34 @@
-import google.getOAuthTokenFromFile
 import google.getClientIdFromFile
 import google.getClientSecretFromFile
-import google.getAuthToken
-import google.getAccessTokenResponse
+import google.getGoogleTokensFromFile
+import google.getAuthorisationCode
+import google.getAccessTokenResponseFromAuthCode
+import google.getAccessTokenResponseFromRefreshToken
+import google.writeTokensToFile
+import google.shouldRefreshToken
 
 @main
 def main(): Unit =
   val clientId = getClientIdFromFile()
   val clientSecret = getClientSecretFromFile()
-  val googleTokens = getGoogleTokens
-    case None        => getAuthToken(clientId)
+  val googleTokens = getGoogleTokensFromFile() match {
+    case None =>
+      val authCode = getAuthorisationCode(clientId)
+      val tokens =
+        getAccessTokenResponseFromAuthCode(clientId, clientSecret, authCode)
+      writeTokensToFile(tokens)
+      tokens
+    case Some(tokens) =>
+      if (shouldRefreshToken(tokens)) {
+        val newTokens = getAccessTokenResponseFromRefreshToken(
+          clientId,
+          clientSecret,
+          tokens.refreshToken
+        )
+        writeTokensToFile(newTokens)
+        newTokens
+      } else {
+        tokens
+      }
   }
-
-  val accessToken = getAccessTokenResponse(clientId, clientSecret, authToken)
-  println(accessToken)
+  println(googleTokens.accessToken)

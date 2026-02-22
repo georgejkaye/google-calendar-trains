@@ -10,8 +10,12 @@ def writeToFile(filePath: String, contents: String) =
   fileWriter.write(contents)
   fileWriter.close()
 
-def readFromFile(filePath: String) =
-  io.Source.fromFile("secret").getLines().next()
+def readFromFile(filePath: String): String =
+  val source = io.Source.fromFile(filePath)
+  val lines =
+    try source.mkString
+    finally source.close()
+  lines
 
-def fileExists(filePath: String) =
+def fileExists(filePath: String): Boolean =
   Files.exists(Paths.get(filePath))

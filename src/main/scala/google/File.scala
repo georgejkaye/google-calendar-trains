@@ -6,25 +6,27 @@ import java.io.FileWriter
 import java.io.File
 import spray.json._
 import utils.readFromFile
+import utils.fileExists
 
 import GoogleTokenProtocol._
+import utils.writeToFile
+
+val googleTokensFile = "google_tokens.json"
 
 def getClientIdFromFile(): String =
-  io.Source.fromFile("client").getLines().next()
-
-def getOAuthTokenFromFile(): Option[String] =
-  if Files.exists(Paths.get("token")) then
-    val tokenLine = io.Source.fromFile("token").getLines().next()
-    Some(tokenLine)
-  else None
-
-def writeTokensToFile(accessToken: String, refreshToken: String) =
-  val fileWriter = new FileWriter(new File("access"))
-  fileWriter.write(accessToken)
-  fileWriter.close()
+  readFromFile("client")
 
 def getClientSecretFromFile(): String =
-  io.Source.fromFile("secret").getLines().next()
+  readFromFile("secret")
 
-def getGoogleTokensFromFile() =
-  val token = readFromFile("google_tokens").parseJson.convertTo[GoogleTokens]
+def writeTokensToFile(tokens: GoogleTokens) =
+  writeToFile(googleTokensFile, tokens.toJson.prettyPrint)
+
+def getGoogleTokensFromFile(): Option[GoogleTokens] =
+  if (!fileExists(googleTokensFile)) {
+    None
+  } else {
+    val tokens =
+      readFromFile(googleTokensFile).parseJson.convertTo[GoogleTokens]
+    Some(tokens)
+  }

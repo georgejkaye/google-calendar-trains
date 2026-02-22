@@ -3,6 +3,8 @@ package google
 import spray.json._
 import com.github.nscala_time.time.Imports._
 
+import utils.DateTimeProtocol.DateTimeFormat
+
 case class GoogleTokens(
     accessToken: String,
     accessTokenExpires: DateTime,
@@ -11,6 +13,6 @@ case class GoogleTokens(
 
 object GoogleTokenProtocol extends DefaultJsonProtocol {
   implicit val format: RootJsonFormat[GoogleTokens] = jsonFormat3(
-    GoogleTokenProtocol.apply
+    GoogleTokens.apply
   )
 }

@@ -8,7 +8,6 @@
 target
 project
 
-access
 client
 secret
-token
+google_tokens.json

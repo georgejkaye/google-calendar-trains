@@ -5,7 +5,8 @@ import google.calendar.Event
 import google.calendar.EventTimeProtocol
 import google.calendar.EventTime
 import com.github.nscala_time.time.Imports._
-import rtt.RttClient
+import rtt.client.RttClient
+import rtt.interactive.getStationDepartureFromList
 
 val accountsOauthBaseUrl = "https://accounts.google.com/o/oauth2/v2"
 val oauthApiBaseUrl = "https://oauth2.googleapis.com"
@@ -28,4 +29,6 @@ def main(): Unit =
   val rttClient =
     RttClient("https://api.rtt.io/api/v1", config.rttUser, config.rttApiKey)
 
-  println(rttClient.getDeparturesFromStation("BHM", DateTime.now()))
+  val stationDepartures =
+    rttClient.getDeparturesFromStation("BHM", DateTime.now())
+  println(getStationDepartureFromList(stationDepartures))

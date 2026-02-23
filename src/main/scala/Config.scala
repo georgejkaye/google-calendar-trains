@@ -1,10 +1,16 @@
 import spray.json._
 import utils.readFromFile
 
-case class Config(calendarId: String)
+case class Config(
+    calendarId: String,
+    clientId: String,
+    clientSecret: String,
+    rttUser: String,
+    rttApiKey: String
+)
 
 object ConfigProtocol extends DefaultJsonProtocol {
-  implicit val format: RootJsonFormat[Config] = jsonFormat1(
+  implicit val format: RootJsonFormat[Config] = jsonFormat5(
     Config.apply
   )
 }

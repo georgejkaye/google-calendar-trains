@@ -1,4 +1,4 @@
-package rtt
+package rtt.client
 
 import spray.json.*
 
@@ -15,12 +15,13 @@ import PairProtocol._
 
 case class LocationDetail(
     gbttBookedDeparture: String,
-    destination: List[Pair]
+    gbttBookedDepartureNextDay: Option[Boolean],
+    destination: Vector[Pair]
 )
 
 object LocationDetailProtocol extends DefaultJsonProtocol {
   implicit val format: RootJsonFormat[LocationDetail] =
-    jsonFormat2(LocationDetail.apply)
+    jsonFormat3(LocationDetail.apply)
 }
 
 import LocationDetailProtocol._
@@ -41,7 +42,7 @@ object LocationContainerProtocol extends DefaultJsonProtocol {
 import LocationContainerProtocol._
 
 case class LocationResponse(
-    services: List[LocationContainer]
+    services: Vector[LocationContainer]
 )
 
 object LocationResponseProtocol extends DefaultJsonProtocol {

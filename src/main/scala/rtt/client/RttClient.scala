@@ -1,10 +1,14 @@
-package rtt
+package rtt.client
 
 import sttp.client4.quick.*
 import spray.json.*
 import com.github.nscala_time.time.Imports.*
 
-import rtt.LocationResponseProtocol.format
+import rtt.client.IRttClient
+import rtt.StationDeparture
+import rtt.client.LocationResponse
+import rtt.client.LocationResponseProtocol.format
+import org.joda.time.format.DateTimeFormatter
 
 class RttClient(baseUrl: String, rttUser: String, rttApiKey: String)
     extends IRttClient {
@@ -12,7 +16,7 @@ class RttClient(baseUrl: String, rttUser: String, rttApiKey: String)
   def getDeparturesFromStation(
       station: String,
       searchTime: DateTime
-  ): List[StationDeparture] =
+  ): Vector[StationDeparture] =
     val url =
       uri"$baseUrl/json/search/$station/${searchTime.toString("yyyy")}/${searchTime.toString("MM")}/${searchTime.toString("dd")}/${searchTime.toString("HHmm")}"
     println(url)
@@ -32,7 +36,17 @@ class RttClient(baseUrl: String, rttUser: String, rttApiKey: String)
         service.locationDetail.destination.map(destination =>
           destination.description
         ),
-        DateTime.parse(service.locationDetail.gbttBookedDeparture),
+        DateTimeFormat
+          .forPattern("HHmm")
+          .parseDateTime(service.locationDetail.gbttBookedDeparture)
+          .withDate(
+            DateTimeFormat
+              .forPattern("yyyy-MM-dd")
+              .parseLocalDate(service.runDate)
+          ) + (service.locationDetail.gbttBookedDepartureNextDay match {
+          case None    => 0.day
+          case Some(b) => if b then 1.day else 0.day
+        }),
         service.atocName
       )
     )

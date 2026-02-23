@@ -1,34 +1,31 @@
-import google.getClientIdFromFile
-import google.getClientSecretFromFile
-import google.getGoogleTokensFromFile
-import google.getAuthorisationCode
-import google.getAccessTokenResponseFromAuthCode
-import google.getAccessTokenResponseFromRefreshToken
-import google.writeTokensToFile
-import google.shouldRefreshToken
+import utils.readFromFile
+import google.auth.AuthClient
+import google.calendar.CalendarClient
+import google.calendar.Event
+import google.calendar.EventTimeProtocol
+import google.calendar.EventTime
+import com.github.nscala_time.time.Imports._
+import rtt.RttClient
+
+val accountsOauthBaseUrl = "https://accounts.google.com/o/oauth2/v2"
+val oauthApiBaseUrl = "https://oauth2.googleapis.com"
 
 @main
 def main(): Unit =
-  val clientId = getClientIdFromFile()
-  val clientSecret = getClientSecretFromFile()
-  val googleTokens = getGoogleTokensFromFile() match {
-    case None =>
-      val authCode = getAuthorisationCode(clientId)
-      val tokens =
-        getAccessTokenResponseFromAuthCode(clientId, clientSecret, authCode)
-      writeTokensToFile(tokens)
-      tokens
-    case Some(tokens) =>
-      if (shouldRefreshToken(tokens)) {
-        val newTokens = getAccessTokenResponseFromRefreshToken(
-          clientId,
-          clientSecret,
-          tokens.refreshToken
-        )
-        writeTokensToFile(newTokens)
-        newTokens
-      } else {
-        tokens
-      }
-  }
-  println(googleTokens.accessToken)
+  val config = loadConfig()
+
+  val authClient = AuthClient(
+    accountsOauthBaseUrl,
+    oauthApiBaseUrl,
+    config.clientId,
+    config.clientSecret,
+    "google_tokens.json"
+  )
+  val calendarClient = CalendarClient("https://www.googleapis.com/calendar/v3")
+
+  val accessToken = authClient.getAccessToken()
+
+  val rttClient =
+    RttClient("https://api.rtt.io/api/v1", config.rttUser, config.rttApiKey)
+
+  println(rttClient.getDeparturesFromStation("BHM", DateTime.now()))

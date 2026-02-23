@@ -1,4 +1,4 @@
-package google
+package google.auth
 
 import spray.json._
 import DefaultJsonProtocol._

@@ -8,7 +8,5 @@
 target
 project
 
-client
-secret
 google_tokens.json
 config.json

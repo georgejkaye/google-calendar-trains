@@ -8,18 +8,18 @@ import rtt.client.IRttClient
 import rtt.StationDeparture
 import rtt.client.LocationResponse
 import rtt.client.LocationResponseProtocol.format
+import rtt.client.ServiceResponseProtocol.format
 import org.joda.time.format.DateTimeFormatter
+import rtt.Service
 
 class RttClient(baseUrl: String, rttUser: String, rttApiKey: String)
     extends IRttClient {
-
   def getDeparturesFromStation(
       station: String,
       searchTime: DateTime
   ): Vector[StationDeparture] =
     val url =
       uri"$baseUrl/json/search/$station/${searchTime.toString("yyyy")}/${searchTime.toString("MM")}/${searchTime.toString("dd")}/${searchTime.toString("HHmm")}"
-    println(url)
     val response =
       quickRequest
         .get(url)
@@ -50,4 +50,22 @@ class RttClient(baseUrl: String, rttUser: String, rttApiKey: String)
         service.atocName
       )
     )
+
+  def getService(
+      serviceUid: String,
+      runDate: LocalDate
+  ): Option[Service] =
+    val url =
+      uri"$baseUrl/json/service/$serviceUid/${runDate.toString("yyyy")}/${runDate.toString("MM")}/${runDate.toString("dd")}"
+    val response =
+      quickRequest
+        .get(url)
+        .auth
+        .basic(rttUser, rttApiKey)
+        .send()
+        .body
+        .parseJson
+        .convertTo[ServiceResponse]
+    println(response)
+    None
 }

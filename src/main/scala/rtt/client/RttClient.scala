@@ -84,28 +84,37 @@ class RttClient(baseUrl: String, rttUser: String, rttApiKey: String)
       response.atocName,
       response.origin.map(pair => pair.description),
       response.destination.map(pair => pair.description),
-      response.locations.map(location =>
-        Call(
-          location.description,
-          location.gbttBookedDeparture match {
-            case None                => None
-            case Some(planDepString) => {
-              val planDep =
-                DateTimeFormat
-                  .forPattern("HHmm")
-                  .parseDateTime(planDepString)
-                  .withDate(
-                    runDate.getYear(),
-                    runDate.getMonthOfYear(),
-                    runDate.getDayOfMonth()
-                  )
-              Some(
-                if planDep < initialDepartureTime then planDep + 1.day
-                else planDep
-              )
-            }
-          }
+      response.locations
+        .filter(location => !location.crs.isEmpty && location.isCall)
+        .map(location =>
+          Call(
+            location.description,
+            location.crs.getOrElse(""),
+            getCallTime(location.gbttBookedDeparture, initialDepartureTime),
+            getCallTime(location.gbttBookedArrival, initialDepartureTime)
+          )
         )
-      )
     )
+
+  def getCallTime(
+      timeStringOption: Option[String],
+      initialDepartureTime: DateTime
+  ): Option[DateTime] =
+    timeStringOption match {
+      case None             => None
+      case Some(timeString) =>
+        val planDep =
+          DateTimeFormat
+            .forPattern("HHmm")
+            .parseDateTime(timeString)
+            .withDate(
+              initialDepartureTime.getYear(),
+              initialDepartureTime.getMonthOfYear(),
+              initialDepartureTime.getDayOfMonth()
+            )
+        Some(
+          if planDep < initialDepartureTime then planDep + 1.day
+          else planDep
+        )
+    }
 }

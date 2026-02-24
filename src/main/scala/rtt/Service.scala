@@ -4,7 +4,9 @@ import org.joda.time.DateTime
 
 case class Call(
     stationName: String,
-    planDep: Option[DateTime]
+    stationCrs: String,
+    planDep: Option[DateTime],
+    planArr: Option[DateTime]
 )
 
 case class Service(
@@ -13,5 +15,5 @@ case class Service(
     operatorName: String,
     origins: Vector[String],
     destinations: Vector[String],
-    calls: Vector[Call]
+    calls: List[Call]
 )

@@ -5,12 +5,15 @@ import PairProtocol.format
 
 case class Location(
     description: String,
-    gbttBookedDeparture: Option[String]
+    crs: Option[String],
+    isCall: Boolean,
+    gbttBookedDeparture: Option[String],
+    gbttBookedArrival: Option[String]
 )
 
 object LocationProtocol extends DefaultJsonProtocol {
   implicit val format: RootJsonFormat[Location] =
-    jsonFormat2(Location.apply)
+    jsonFormat5(Location.apply)
 }
 
 import LocationProtocol.format
@@ -21,7 +24,7 @@ case class ServiceResponse(
     atocName: String,
     origin: Vector[Pair],
     destination: Vector[Pair],
-    locations: Vector[Location]
+    locations: List[Location]
 )
 
 object ServiceResponseProtocol extends DefaultJsonProtocol {

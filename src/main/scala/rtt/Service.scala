@@ -2,10 +2,9 @@ package rtt
 
 import org.joda.time.DateTime
 
-case class ServiceLocation(
+case class Call(
     stationName: String,
-    planDep: DateTime,
-    associations: Vector[Service]
+    planDep: Option[DateTime]
 )
 
 case class Service(
@@ -14,5 +13,5 @@ case class Service(
     operatorName: String,
     origins: Vector[String],
     destinations: Vector[String],
-    calls: Vector[ServiceLocation]
+    calls: Vector[Call]
 )

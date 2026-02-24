@@ -9,8 +9,8 @@ import rtt.StationDeparture
 import rtt.client.LocationResponse
 import rtt.client.LocationResponseProtocol.format
 import rtt.client.ServiceResponseProtocol.format
-import org.joda.time.format.DateTimeFormatter
 import rtt.Service
+import rtt.Call
 
 class RttClient(baseUrl: String, rttUser: String, rttApiKey: String)
     extends IRttClient {
@@ -32,6 +32,7 @@ class RttClient(baseUrl: String, rttUser: String, rttApiKey: String)
     response.services.map(service =>
       StationDeparture(
         service.serviceUid,
+        DateTimeFormat.forPattern("yyyy-MM-dd").parseDateTime(service.runDate),
         service.trainIdentity,
         service.locationDetail.destination.map(destination =>
           destination.description
@@ -53,8 +54,8 @@ class RttClient(baseUrl: String, rttUser: String, rttApiKey: String)
 
   def getService(
       serviceUid: String,
-      runDate: LocalDate
-  ): Option[Service] =
+      runDate: DateTime
+  ): Service =
     val url =
       uri"$baseUrl/json/service/$serviceUid/${runDate.toString("yyyy")}/${runDate.toString("MM")}/${runDate.toString("dd")}"
     val response =
@@ -66,6 +67,45 @@ class RttClient(baseUrl: String, rttUser: String, rttApiKey: String)
         .body
         .parseJson
         .convertTo[ServiceResponse]
-    println(response)
-    None
+    val initialDepartureTime =
+      DateTimeFormat
+        .forPattern("HHmm")
+        .parseDateTime(
+          response.locations(0).gbttBookedDeparture.getOrElse("0000")
+        )
+        .withDate(
+          runDate.getYear(),
+          runDate.getMonthOfYear(),
+          runDate.getDayOfMonth()
+        )
+    Service(
+      response.serviceUid,
+      DateTimeFormat.forPattern("yyyy-MM-dd").parseDateTime(response.runDate),
+      response.atocName,
+      response.origin.map(pair => pair.description),
+      response.destination.map(pair => pair.description),
+      response.locations.map(location =>
+        Call(
+          location.description,
+          location.gbttBookedDeparture match {
+            case None                => None
+            case Some(planDepString) => {
+              val planDep =
+                DateTimeFormat
+                  .forPattern("HHmm")
+                  .parseDateTime(planDepString)
+                  .withDate(
+                    runDate.getYear(),
+                    runDate.getMonthOfYear(),
+                    runDate.getDayOfMonth()
+                  )
+              Some(
+                if planDep < initialDepartureTime then planDep + 1.day
+                else planDep
+              )
+            }
+          }
+        )
+      )
+    )
 }

@@ -1,9 +1,9 @@
 package rtt.client
 
-import org.joda.time.DateTime
+import com.github.nscala_time.time.Imports.*
+
 import rtt.StationDeparture
 import rtt.Service
-import org.joda.time.LocalDate
 
 trait IRttClient:
   def getDeparturesFromStation(
@@ -11,4 +11,4 @@ trait IRttClient:
       searchTime: DateTime
   ): Vector[StationDeparture]
 
-  def getService(serviceUid: String, runDate: LocalDate): Option[Service]
+  def getService(serviceUid: String, runDate: DateTime): Service

@@ -1,4 +1,4 @@
 package google.auth
 
-trait IAuthClient:
+trait IGoogleAuthClient:
   def getAccessToken(): String

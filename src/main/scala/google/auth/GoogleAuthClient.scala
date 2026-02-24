@@ -15,13 +15,13 @@ import utils.writeToFile
 import utils.fileExists
 import utils.readFromFile
 
-class AuthClient(
+class GoogleAuthClient(
     accountsOauthBaseUrl: String,
     oauthApiBaseUrl: String,
     clientId: String,
     clientSecret: String,
     tokensFile: String
-) extends IAuthClient:
+) extends IGoogleAuthClient:
   def getAccessToken(): String =
     val tokens = getGoogleTokensFromFile() match {
       case None =>

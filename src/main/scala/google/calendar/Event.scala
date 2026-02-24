@@ -17,15 +17,27 @@ object EventTimeProtocol extends DefaultJsonProtocol {
 
 import EventTimeProtocol.*
 
+case class Attendee(
+    email: String
+)
+
+object AttendeeProtocol extends DefaultJsonProtocol {
+  implicit val format: RootJsonFormat[Attendee] =
+    jsonFormat1(Attendee.apply)
+}
+
+import AttendeeProtocol.*
+
 case class Event(
     start: EventTime,
     end: EventTime,
     summary: String,
     description: String,
-    location: String
+    location: String,
+    attendees: List[Attendee]
 )
 
 object EventProtocol extends DefaultJsonProtocol {
   implicit val format: RootJsonFormat[Event] =
-    jsonFormat5(Event.apply)
+    jsonFormat6(Event.apply)
 }

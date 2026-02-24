@@ -1,6 +1,6 @@
 package google.calendar
 
-trait ICalendarClient:
+trait IGoogleCalendarClient:
   def insertCalendarEvent(
       accessToken: String,
       calendarId: String,

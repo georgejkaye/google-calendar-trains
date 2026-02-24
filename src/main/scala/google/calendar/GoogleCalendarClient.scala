@@ -5,7 +5,7 @@ import spray.json.*
 
 import google.calendar.EventProtocol.format
 
-class CalendarClient(baseUrl: String) extends ICalendarClient:
+class GoogleCalendarClient(baseUrl: String) extends IGoogleCalendarClient:
   def insertCalendarEvent(
       accessToken: String,
       calendarId: String,

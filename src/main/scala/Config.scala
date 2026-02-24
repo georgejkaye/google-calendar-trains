@@ -6,11 +6,12 @@ case class Config(
     clientId: String,
     clientSecret: String,
     rttUser: String,
-    rttApiKey: String
+    rttApiKey: String,
+    attendees: List[String]
 )
 
 object ConfigProtocol extends DefaultJsonProtocol {
-  implicit val format: RootJsonFormat[Config] = jsonFormat5(
+  implicit val format: RootJsonFormat[Config] = jsonFormat6(
     Config.apply
   )
 }

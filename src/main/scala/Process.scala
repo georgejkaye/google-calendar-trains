@@ -72,7 +72,10 @@ def runProcess(
 
   val journeyTitle = s"${boardCall.stationName} to ${alightCall.stationName}"
 
-  val seats = io.StdIn.readLine("Seat reservations: ")
+  val seats = io.StdIn.readLine("Seat reservations: ") match {
+    case ""         => ""
+    case seatString => s"\n\n$seatString"
+  }
   val rttLink =
     s"https://www.realtimetrains.co.uk/service/gb-nr:${service.serviceUid}/${service.runDate.toString("yyyy-MM-dd")}/detailed"
 
@@ -83,7 +86,7 @@ def runProcess(
       EventTime(dateTime = boardCall.planDep),
       EventTime(dateTime = alightCall.planArr),
       journeyTitle,
-      s"$rttLink\n\n$seats",
+      s"$rttLink$seats",
       s"${boardCall.stationName} railway station",
       config.attendees.map(attendee => Attendee(attendee))
     )

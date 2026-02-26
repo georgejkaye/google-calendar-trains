@@ -1,5 +1,5 @@
+import scala.util._
 import com.github.nscala_time.time.Imports.*
-
 import google.calendar.IGoogleCalendarClient
 import google.auth.IGoogleAuthClient
 import rtt.client.IRttClient
@@ -15,82 +15,85 @@ def runProcess(
     authClient: IGoogleAuthClient,
     calendarClient: IGoogleCalendarClient,
     rttClient: IRttClient
-): Unit =
-  val googleAccessToken = authClient.getAccessToken()
-
-  val stationCode = io.StdIn.readLine("Station code: ").toUpperCase()
-
-  if stationCode.length() != 3 then return
-
-  val runDateString = io.StdIn.readLine("Run date: ")
-
-  val runDate =
-    DateTimeFormat
-      .forPattern("yyyy-MM-dd")
-      .parseOption(runDateString) match {
-      case None => {
-        println("Invalid date format, expected yyyy-MM-dd")
-        return
+): Either[String, Unit] =
+  Right(())
+    .flatMap { _ =>
+      authClient.getAccessToken() match {
+        case Left(error)  => Left(s"Could not get google auth token: ${error}")
+        case Right(token) => Right(token)
       }
-      case Some(rd) => rd
     }
-
-  val depTimeString = io.StdIn.readLine("Departure time: ")
-
-  val depTime =
-    DateTimeFormat
-      .forPattern("HHmm")
-      .parseOption(depTimeString) match {
-      case None => {
-        println("Invalid time format, expected HHmm")
-        return
+    .flatMap { googleToken =>
+      io.StdIn.readLine("Station code: ").toUpperCase() match {
+        case stationCode if stationCode.length == 3 =>
+          Right((googleToken, stationCode))
+        case _ => Left("Station code must be three characters")
       }
-      case Some(dt) => dt
     }
-
-  val stationDepartures = rttClient.getDeparturesFromStation(
-    stationCode,
-    runDate.withTime(depTime.getHourOfDay(), depTime.getMinuteOfHour(), 0, 0)
-  )
-  val stationDeparture = getStationDepartureFromList(stationDepartures) match {
-    case None => {
-      println("No departure picked")
-      return
+    .flatMap { (googleToken, stationCode) =>
+      DateTimeFormat
+        .forPattern("yyyy-MM-dd")
+        .parseOption(io.StdIn.readLine("Run date: ")) match {
+        case None     => Left("Invalid date format, expected yyyy-MM-dd")
+        case Some(rd) => Right((googleToken, stationCode, rd))
+      }
     }
-    case Some(dep) => dep
-  }
-
-  val service = rttClient.getServiceFromStationDeparture(stationDeparture)
-
-  val boardCall = getBoardCallFromService(service, stationCode, depTime) match
-    case None       => return
-    case Some(call) => call
-
-  val alightCall = getAlightCallFromService(service, boardCall) match
-    case None       => return
-    case Some(call) => call
-
-  val journeyTitle = s"${boardCall.stationName} to ${alightCall.stationName}"
-
-  val seats = io.StdIn.readLine("Seat reservations: ") match {
-    case ""         => ""
-    case seatString => s"\n\n$seatString"
-  }
-  val rttLink =
-    s"https://www.realtimetrains.co.uk/service/gb-nr:${service.serviceUid}/${service.runDate.toString("yyyy-MM-dd")}/detailed"
-
-  calendarClient.insertCalendarEvent(
-    googleAccessToken,
-    config.calendarId,
-    Event(
-      EventTime(dateTime = boardCall.planDep),
-      EventTime(dateTime = alightCall.planArr),
-      journeyTitle,
-      s"$rttLink$seats",
-      s"${boardCall.stationName} railway station",
-      config.attendees.map(attendee => Attendee(attendee))
-    )
-  )
+    .flatMap { (googleToken, stationCode, runDate) =>
+      DateTimeFormat
+        .forPattern("HHmm")
+        .parseOption(io.StdIn.readLine("Departure time: ")) match {
+        case None =>
+          Left("Invalid time format, expected HHmm")
+        case Some(dt) => Right((googleToken, stationCode, runDate, dt))
+      }
+    }
+    .flatMap { (googleToken, stationCode, runDate, depTime) =>
+      val stationDepartures = rttClient.getDeparturesFromStation(
+        stationCode,
+        runDate
+          .withTime(depTime.getHourOfDay(), depTime.getMinuteOfHour(), 0, 0)
+      )
+      getStationDepartureFromList(stationDepartures) match {
+        case None            => Left("No departure picked")
+        case Some(departure) =>
+          Right((googleToken, stationCode, depTime, departure))
+      }
+    }
+    .flatMap { (googleToken, boardStationCode, depTime, departure) =>
+      val service = rttClient.getServiceFromStationDeparture(departure)
+      getBoardCallFromService(service, boardStationCode, depTime) match
+        case None       => Left("Could not get board call")
+        case Some(call) => Right((googleToken, service, call))
+    }
+    .flatMap { (googleToken, service, boardCall) =>
+      getAlightCallFromService(service, boardCall) match
+        case None             => Left("Could not get alight call")
+        case Some(alightCall) =>
+          Right((googleToken, service, boardCall, alightCall))
+    }
+    .flatMap { (googleToken, service, boardCall, alightCall) =>
+      val journeyTitle =
+        s"${boardCall.stationName} to ${alightCall.stationName}"
+      val seats = io.StdIn.readLine("Seat reservations: ") match {
+        case ""         => ""
+        case seatString => s"\n\n$seatString"
+      }
+      val rttLink =
+        s"https://www.realtimetrains.co.uk/service/gb-nr:${service.serviceUid}/${service.runDate.toString("yyyy-MM-dd")}/detailed"
+      val _ = calendarClient.insertCalendarEvent(
+        googleToken,
+        config.calendarId,
+        Event(
+          EventTime(dateTime = boardCall.planDep),
+          EventTime(dateTime = alightCall.planArr),
+          journeyTitle,
+          s"$rttLink$seats",
+          s"${boardCall.stationName} railway station",
+          config.attendees.map(attendee => Attendee(attendee))
+        )
+      )
+      Right(())
+    }
 
 def getStationDepartureFromList(
     departures: Vector[StationDeparture]

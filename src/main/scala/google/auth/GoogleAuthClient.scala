@@ -22,28 +22,35 @@ class GoogleAuthClient(
     clientSecret: String,
     tokensFile: String
 ) extends IGoogleAuthClient:
-  def getAccessToken(): String =
-    val tokens = getGoogleTokensFromFile() match {
-      case None =>
-        val authCode = getAuthorisationCode(clientId)
-        val newTokens =
-          getAccessTokenResponseFromAuthCode(clientId, clientSecret, authCode)
-        writeTokensToFile(newTokens)
-        newTokens
-      case Some(tokens) =>
-        if (shouldRefreshToken(tokens)) {
-          val newTokens = getAccessTokenResponseFromRefreshToken(
+  def getAccessToken(): Either[String, String] =
+    for {
+      tokens <- getGoogleTokensFromFile() match {
+        case None =>
+          val authCode = getAuthorisationCode(clientId)
+          getAccessTokenResponseFromAuthCode(
             clientId,
             clientSecret,
-            tokens.refreshToken
-          )
-          writeTokensToFile(newTokens)
-          newTokens
-        } else {
-          tokens
-        }
-    }
-    tokens.accessToken
+            authCode
+          ).flatMap { newTokens =>
+            writeTokensToFile(newTokens)
+            Right(newTokens)
+          }
+        case Some(tokens) =>
+          shouldRefreshToken(tokens) match {
+            case true =>
+              getAccessTokenResponseFromRefreshToken(
+                clientId,
+                clientSecret,
+                tokens.refreshToken
+              ).flatMap { newTokens =>
+                writeTokensToFile(newTokens)
+                Right(newTokens)
+              }
+            case false => Right(tokens)
+          }
+      }
+      token <- Right(tokens.accessToken)
+    } yield token
 
   val codeVerifier = "hello!"
 
@@ -64,7 +71,7 @@ class GoogleAuthClient(
       clientId: String,
       clientSecret: String,
       authCode: String
-  ): GoogleTokens =
+  ): Either[String, GoogleTokens] =
     val queryParams = Map(
       "client_id" -> clientId,
       "client_secret" -> clientSecret,
@@ -74,23 +81,27 @@ class GoogleAuthClient(
       "code_verifier" -> codeVerifier
     )
     val url = uri"$oauthApiBaseUrl/token?$queryParams"
-    val response = quickRequest
+    basicRequest
       .post(url)
       .send()
       .body
-      .parseJson
-      .convertTo[GoogleAccessTokenAuthCodeResponse]
-    GoogleTokens(
-      response.access_token,
-      DateTime.now() + response.expires_in.seconds,
-      response.refresh_token
-    )
+      .flatMap { result =>
+        val response = result.parseJson
+          .convertTo[GoogleAccessTokenAuthCodeResponse]
+        Right(
+          GoogleTokens(
+            response.access_token,
+            DateTime.now() + response.expires_in.seconds,
+            response.refresh_token
+          )
+        )
+      }
 
   def getAccessTokenResponseFromRefreshToken(
       clientId: String,
       clientSecret: String,
       refreshToken: String
-  ): GoogleTokens =
+  ): Either[String, GoogleTokens] =
     val queryParams = Map(
       "client_id" -> clientId,
       "client_secret" -> clientSecret,
@@ -99,17 +110,22 @@ class GoogleAuthClient(
       "redirect_uri" -> "http://127.0.0.1"
     )
     val url = uri"$oauthApiBaseUrl/token?$queryParams"
-    val response = quickRequest
+    basicRequest
       .post(url)
       .send()
       .body
-      .parseJson
-      .convertTo[GoogleAccessTokenRefreshTokenResponse]
-    GoogleTokens(
-      response.access_token,
-      DateTime.now() + response.expires_in.seconds,
-      refreshToken
-    )
+      .flatMap { body =>
+        val response =
+          body.parseJson
+            .convertTo[GoogleAccessTokenRefreshTokenResponse]
+        Right(
+          GoogleTokens(
+            response.access_token,
+            DateTime.now() + response.expires_in.seconds,
+            refreshToken
+          )
+        )
+      }
 
   def shouldRefreshToken(tokens: GoogleTokens): Boolean =
     DateTime.now() >= tokens.accessTokenExpires

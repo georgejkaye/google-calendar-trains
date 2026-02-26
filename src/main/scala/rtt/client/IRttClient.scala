@@ -10,11 +10,11 @@ trait IRttClient:
   def getDeparturesFromStation(
       station: String,
       searchTime: DateTime
-  ): Vector[StationDeparture]
+  ): Either[String, IndexedSeq[StationDeparture]]
 
-  def getService(serviceUid: String, runDate: DateTime): Service
+  def getService(serviceUid: String, runDate: DateTime): Either[String, Service]
 
   def getServiceFromStationDeparture(
       stationDeparture: StationDeparture
-  ): Service =
+  ): Either[String, Service] =
     getService(stationDeparture.serviceUid, stationDeparture.runDate)

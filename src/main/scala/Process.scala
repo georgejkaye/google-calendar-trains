@@ -48,22 +48,28 @@ def runProcess(
       }
     }
     .flatMap { (googleToken, stationCode, runDate, depTime) =>
-      val stationDepartures = rttClient.getDeparturesFromStation(
-        stationCode,
-        runDate
-          .withTime(depTime.getHourOfDay(), depTime.getMinuteOfHour(), 0, 0)
-      )
-      getStationDepartureFromList(stationDepartures) match {
-        case None            => Left("No departure picked")
-        case Some(departure) =>
-          Right((googleToken, stationCode, depTime, departure))
-      }
+      rttClient
+        .getDeparturesFromStation(
+          stationCode,
+          runDate
+            .withTime(depTime.getHourOfDay(), depTime.getMinuteOfHour(), 0, 0)
+        )
+        .flatMap { stationDepartures =>
+          getStationDepartureFromList(stationDepartures) match {
+            case None            => Left("No departure picked")
+            case Some(departure) =>
+              Right((googleToken, stationCode, depTime, departure))
+          }
+        }
     }
     .flatMap { (googleToken, boardStationCode, depTime, departure) =>
-      val service = rttClient.getServiceFromStationDeparture(departure)
-      getBoardCallFromService(service, boardStationCode, depTime) match
-        case None       => Left("Could not get board call")
-        case Some(call) => Right((googleToken, service, call))
+      rttClient
+        .getServiceFromStationDeparture(departure)
+        .flatMap { service =>
+          getBoardCallFromService(service, boardStationCode, depTime) match
+            case None       => Left("Could not get board call")
+            case Some(call) => Right((googleToken, service, call))
+        }
     }
     .flatMap { (googleToken, service, boardCall) =>
       getAlightCallFromService(service, boardCall) match
@@ -96,7 +102,7 @@ def runProcess(
     }
 
 def getStationDepartureFromList(
-    departures: Vector[StationDeparture]
+    departures: IndexedSeq[StationDeparture]
 ): Option[StationDeparture] =
   departures.zipWithIndex.foreach((departure, i) =>
     val indexString = s"${i + 1}:".padTo(2, " ").mkString

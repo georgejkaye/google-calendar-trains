@@ -33,7 +33,7 @@ object LocationContainerProtocol extends DefaultJsonProtocol {
 import LocationContainerProtocol._
 
 case class LocationResponse(
-    services: Vector[LocationContainer]
+    services: IndexedSeq[LocationContainer]
 )
 
 object LocationResponseProtocol extends DefaultJsonProtocol {

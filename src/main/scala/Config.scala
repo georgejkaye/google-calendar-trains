@@ -21,5 +21,5 @@ object ConfigProtocol extends DefaultJsonProtocol {
 import ConfigProtocol._
 
 def loadConfig(): Config =
-  val configPath = home / ".config" / "caltrains.json"
+  val configPath = home / ".config" / "caltrains" / "config.json"
   readFromFile(configPath).parseJson.convertTo[Config]

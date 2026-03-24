@@ -19,7 +19,7 @@ def main(): Unit =
     oauthApiBaseUrl,
     config.clientId,
     config.clientSecret,
-    file"google_tokens.json"
+    home / ".config" / "caltrains" / "google_tokens.json"
   )
   val calendarClient = GoogleCalendarClient(
     "https://www.googleapis.com/calendar/v3"

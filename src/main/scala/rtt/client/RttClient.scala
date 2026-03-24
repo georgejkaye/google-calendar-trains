@@ -30,29 +30,31 @@ class RttClient(baseUrl: String, rttUser: String, rttApiKey: String)
         val response = body.parseJson
           .convertTo[LocationResponse]
         Right(
-          response.services.map(service =>
-            StationDeparture(
-              service.serviceUid,
-              DateTimeFormat
-                .forPattern("yyyy-MM-dd")
-                .parseDateTime(service.runDate),
-              service.trainIdentity,
-              service.locationDetail.destination
-                .map(destination => destination.description),
-              DateTimeFormat
-                .forPattern("HHmm")
-                .parseDateTime(service.locationDetail.gbttBookedDeparture)
-                .withDate(
-                  DateTimeFormat
-                    .forPattern("yyyy-MM-dd")
-                    .parseLocalDate(service.runDate)
-                ) + (service.locationDetail.gbttBookedDepartureNextDay match {
-                case None    => 0.day
-                case Some(b) => if b then 1.day else 0.day
-              }),
-              service.atocName
+          response.services
+            .filter(service => service.trainIdentity.isDefined)
+            .map(service =>
+              StationDeparture(
+                service.serviceUid,
+                DateTimeFormat
+                  .forPattern("yyyy-MM-dd")
+                  .parseDateTime(service.runDate),
+                service.trainIdentity.get,
+                service.locationDetail.destination
+                  .map(destination => destination.description),
+                DateTimeFormat
+                  .forPattern("HHmm")
+                  .parseDateTime(service.locationDetail.gbttBookedDeparture)
+                  .withDate(
+                    DateTimeFormat
+                      .forPattern("yyyy-MM-dd")
+                      .parseLocalDate(service.runDate)
+                  ) + (service.locationDetail.gbttBookedDepartureNextDay match {
+                  case None    => 0.day
+                  case Some(b) => if b then 1.day else 0.day
+                }),
+                service.atocName
+              )
             )
-          )
         )
       }
 

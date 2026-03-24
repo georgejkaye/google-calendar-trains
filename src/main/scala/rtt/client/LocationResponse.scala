@@ -19,7 +19,7 @@ import LocationDetailProtocol._
 
 case class LocationContainer(
     serviceUid: String,
-    trainIdentity: String,
+    trainIdentity: Option[String],
     atocName: String,
     runDate: String,
     locationDetail: LocationDetail

@@ -7,6 +7,7 @@ import google.calendar.EventTime
 import com.github.nscala_time.time.Imports._
 import rtt.client.RttClient
 import better.files._
+import File._
 
 val accountsOauthBaseUrl = "https://accounts.google.com/o/oauth2/v2"
 val oauthApiBaseUrl = "https://oauth2.googleapis.com"

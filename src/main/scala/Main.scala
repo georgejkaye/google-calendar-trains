@@ -6,6 +6,7 @@ import google.calendar.EventTimeProtocol
 import google.calendar.EventTime
 import com.github.nscala_time.time.Imports._
 import rtt.client.RttClient
+import better.files.StringInterpolations
 
 val accountsOauthBaseUrl = "https://accounts.google.com/o/oauth2/v2"
 val oauthApiBaseUrl = "https://oauth2.googleapis.com"
@@ -18,7 +19,7 @@ def main(): Unit =
     oauthApiBaseUrl,
     config.clientId,
     config.clientSecret,
-    "google_tokens.json"
+    file"google_tokens.json"
   )
   val calendarClient = GoogleCalendarClient(
     "https://www.googleapis.com/calendar/v3"

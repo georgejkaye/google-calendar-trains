@@ -14,13 +14,14 @@ import GoogleTokenProtocol._
 import utils.writeToFile
 import utils.fileExists
 import utils.readFromFile
+import better.files.File
 
 class GoogleAuthClient(
     accountsOauthBaseUrl: String,
     oauthApiBaseUrl: String,
     clientId: String,
     clientSecret: String,
-    tokensFile: String
+    tokensFile: File
 ) extends IGoogleAuthClient:
   def getAccessToken(): Either[String, String] =
     for {

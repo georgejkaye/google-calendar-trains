@@ -12,5 +12,6 @@ lazy val root = project
     libraryDependencies += "org.scala-lang" %% "toolkit" % "0.7.0",
     libraryDependencies += "com.github.nscala-time" %% "nscala-time" % "3.0.0",
     libraryDependencies += "io.spray" %% "spray-json" % "1.3.6",
-    libraryDependencies += "com.softwaremill.sttp.client4" %% "spray-json" % "4.0.19"
+    libraryDependencies += "com.softwaremill.sttp.client4" %% "spray-json" % "4.0.19",
+    libraryDependencies += "com.github.pathikrit" %% "better-files" % "3.9.2"
   )

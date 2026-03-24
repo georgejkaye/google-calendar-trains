@@ -1,21 +1,15 @@
 package utils
 
 import java.io.FileWriter
-import java.io.File
 import java.nio.file.Files
 import java.nio.file.Paths
+import better.files.File
 
-def writeToFile(filePath: String, contents: String) =
-  val fileWriter = new FileWriter(new File(filePath))
-  fileWriter.write(contents)
-  fileWriter.close()
+def writeToFile(file: File, contents: String) =
+  file.overwrite(contents)
 
-def readFromFile(filePath: String): String =
-  val source = io.Source.fromFile(filePath)
-  val lines =
-    try source.mkString
-    finally source.close()
-  lines
+def readFromFile(file: File): String =
+  file.contentAsString()
 
-def fileExists(filePath: String): Boolean =
-  Files.exists(Paths.get(filePath))
+def fileExists(file: File): Boolean =
+  file.exists()

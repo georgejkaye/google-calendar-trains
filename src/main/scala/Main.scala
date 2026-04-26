@@ -19,7 +19,7 @@ val oauthApiBaseUrl = "https://oauth2.googleapis.com"
 def main(): Unit =
   Right(())
     .flatMap { _ =>
-      val configLoader = testConfigLoader
+      val configLoader = dotConfigLoader
       configLoader.getConfig() match {
         case Some(c) => Right(c)
         case None    => Left("Could not get config")

@@ -12,6 +12,8 @@ import rtt.client.ServiceResponseProtocol.format
 import rtt.Service
 import rtt.Call
 
+val europeLondonTimeZone = DateTimeZone.forID("Europe/London")
+
 class RttClient(baseUrl: String, rttUser: String, rttApiKey: String)
     extends IRttClient {
   def getDeparturesFromStation(
@@ -37,21 +39,24 @@ class RttClient(baseUrl: String, rttUser: String, rttApiKey: String)
                 service.serviceUid,
                 DateTimeFormat
                   .forPattern("yyyy-MM-dd")
+                  .withZone(europeLondonTimeZone)
                   .parseDateTime(service.runDate),
                 service.trainIdentity.get,
                 service.locationDetail.destination
                   .map(destination => destination.description),
                 DateTimeFormat
                   .forPattern("HHmm")
+                  .withZone(europeLondonTimeZone)
                   .parseDateTime(service.locationDetail.gbttBookedDeparture)
                   .withDate(
                     DateTimeFormat
                       .forPattern("yyyy-MM-dd")
                       .parseLocalDate(service.runDate)
-                  ) + (service.locationDetail.gbttBookedDepartureNextDay match {
-                  case None    => 0.day
-                  case Some(b) => if b then 1.day else 0.day
-                }),
+                  )
+                  + (service.locationDetail.gbttBookedDepartureNextDay match {
+                    case None    => 0.day
+                    case Some(b) => if b then 1.day else 0.day
+                  }),
                 service.atocName
               )
             )
@@ -75,6 +80,7 @@ class RttClient(baseUrl: String, rttUser: String, rttApiKey: String)
         val initialDepartureTime =
           DateTimeFormat
             .forPattern("HHmm")
+            .withZone(europeLondonTimeZone)
             .parseDateTime(
               response.locations(0).gbttBookedDeparture.getOrElse("0000")
             )
@@ -88,6 +94,7 @@ class RttClient(baseUrl: String, rttUser: String, rttApiKey: String)
             response.serviceUid,
             DateTimeFormat
               .forPattern("yyyy-MM-dd")
+              .withZone(europeLondonTimeZone)
               .parseDateTime(response.runDate),
             response.atocName,
             response.origin.map(pair => pair.description),
@@ -119,6 +126,7 @@ class RttClient(baseUrl: String, rttUser: String, rttApiKey: String)
         val planDep =
           DateTimeFormat
             .forPattern("HHmm")
+            .withZone(europeLondonTimeZone)
             .parseDateTime(timeString)
             .withDate(
               initialDepartureTime.getYear(),

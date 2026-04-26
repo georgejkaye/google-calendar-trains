@@ -1,5 +1,6 @@
 import scala.util._
 import com.github.nscala_time.time.Imports.*
+import config.Config
 import google.calendar.IGoogleCalendarClient
 import google.auth.IGoogleAuthClient
 import rtt.client.IRttClient
@@ -9,6 +10,8 @@ import rtt.Service
 import google.calendar.Event
 import google.calendar.EventTime
 import google.calendar.Attendee
+
+val europeLondonTimeZone = DateTimeZone.forID("Europe/London")
 
 def runProcess(
     config: Config,
@@ -33,6 +36,7 @@ def runProcess(
     .flatMap { (googleToken, stationCode) =>
       DateTimeFormat
         .forPattern("yyyy-MM-dd")
+        .withZone(europeLondonTimeZone)
         .parseOption(io.StdIn.readLine("Run date: ")) match {
         case None     => Left("Invalid date format, expected yyyy-MM-dd")
         case Some(rd) => Right((googleToken, stationCode, rd))
@@ -41,32 +45,37 @@ def runProcess(
     .flatMap { (googleToken, stationCode, runDate) =>
       DateTimeFormat
         .forPattern("HHmm")
+        .withZone(europeLondonTimeZone)
         .parseOption(io.StdIn.readLine("Departure time: ")) match {
         case None =>
           Left("Invalid time format, expected HHmm")
-        case Some(dt) => Right((googleToken, stationCode, runDate, dt))
+        case Some(dt) => {
+          val fullDateTime =
+            runDate
+              .withTime(dt.getHourOfDay(), dt.getMinuteOfHour(), 0, 0)
+          Right((googleToken, stationCode, fullDateTime))
+        }
       }
     }
-    .flatMap { (googleToken, stationCode, runDate, depTime) =>
+    .flatMap { (googleToken, stationCode, depDateTime) =>
       rttClient
         .getDeparturesFromStation(
           stationCode,
-          runDate
-            .withTime(depTime.getHourOfDay(), depTime.getMinuteOfHour(), 0, 0)
+          depDateTime
         )
         .flatMap { stationDepartures =>
           getStationDepartureFromList(stationDepartures) match {
             case None            => Left("No departure picked")
             case Some(departure) =>
-              Right((googleToken, stationCode, depTime, departure))
+              Right((googleToken, stationCode, depDateTime, departure))
           }
         }
     }
-    .flatMap { (googleToken, boardStationCode, depTime, departure) =>
+    .flatMap { (googleToken, boardStationCode, depDateTime, departure) =>
       rttClient
         .getServiceFromStationDeparture(departure)
         .flatMap { service =>
-          getBoardCallFromService(service, boardStationCode, depTime) match
+          getBoardCallFromService(service, boardStationCode, depDateTime) match
             case None       => Left("Could not get board call")
             case Some(call) => Right((googleToken, service, call))
         }
@@ -90,12 +99,20 @@ def runProcess(
         googleToken,
         config.calendarId,
         Event(
-          EventTime(dateTime = boardCall.planDep),
-          EventTime(dateTime = alightCall.planArr),
+          EventTime(
+            dateTime = boardCall.planDep
+          ),
+          EventTime(
+            dateTime = alightCall.planArr
+          ),
           journeyTitle,
           s"$rttLink$seats",
           s"${boardCall.stationName} railway station",
-          config.attendees.map(attendee => Attendee(attendee))
+          config.attendees match {
+            case None            => Nil
+            case Some(attendees) =>
+              attendees.map(attendee => Attendee(attendee))
+          }
         )
       )
       Right(())

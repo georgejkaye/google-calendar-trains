@@ -1,7 +1,6 @@
+package config
+
 import spray.json._
-import utils.readFromFile
-import better.files._
-import File._
 
 case class Config(
     calendarId: String,
@@ -9,7 +8,7 @@ case class Config(
     clientSecret: String,
     rttUser: String,
     rttApiKey: String,
-    attendees: List[String]
+    attendees: Option[List[String]]
 )
 
 object ConfigProtocol extends DefaultJsonProtocol {
@@ -17,9 +16,3 @@ object ConfigProtocol extends DefaultJsonProtocol {
     Config.apply
   )
 }
-
-import ConfigProtocol._
-
-def loadConfig(): Config =
-  val configPath = home / ".config" / "caltrains" / "config.json"
-  readFromFile(configPath).parseJson.convertTo[Config]

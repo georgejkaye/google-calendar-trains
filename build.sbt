@@ -1,12 +1,13 @@
-val scala3Version = "3.8.1"
+val scala3Version = "3.8.3"
 
 lazy val root = project
   .in(file("."))
   .settings(
-    name := "Google Calendar Trains",
-    version := "0.1.0-SNAPSHOT",
+    name := "google-calendar-trains",
+    version := "1.1.0",
 
     scalaVersion := scala3Version,
+    Compile / mainClass := Some("main"),
 
     libraryDependencies += "org.scalameta" %% "munit" % "1.0.0" % Test,
     libraryDependencies += "org.scala-lang" %% "toolkit" % "0.7.0",

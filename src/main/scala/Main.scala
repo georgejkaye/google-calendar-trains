@@ -1,4 +1,7 @@
 import utils.readFromFile
+import config.ConfigLoader
+import config.dotConfigLoader
+import config.testConfigLoader
 import google.auth.GoogleAuthClient
 import google.calendar.GoogleCalendarClient
 import google.calendar.Event
@@ -14,18 +17,27 @@ val oauthApiBaseUrl = "https://oauth2.googleapis.com"
 
 @main
 def main(): Unit =
-  val config = loadConfig()
-  val authClient = GoogleAuthClient(
-    accountsOauthBaseUrl,
-    oauthApiBaseUrl,
-    config.clientId,
-    config.clientSecret,
-    home / ".config" / "caltrains" / "google_tokens.json"
-  )
-  val calendarClient = GoogleCalendarClient(
-    "https://www.googleapis.com/calendar/v3"
-  )
-  val accessToken = authClient.getAccessToken()
-  val rttClient =
-    RttClient("https://api.rtt.io/api/v1", config.rttUser, config.rttApiKey)
-  runProcess(config, authClient, calendarClient, rttClient)
+  Right(())
+    .flatMap { _ =>
+      val configLoader = testConfigLoader
+      configLoader.getConfig() match {
+        case Some(c) => Right(c)
+        case None    => Left("Could not get config")
+      }
+    }
+    .flatMap { config =>
+      val authClient = GoogleAuthClient(
+        accountsOauthBaseUrl,
+        oauthApiBaseUrl,
+        config.clientId,
+        config.clientSecret,
+        home / ".config" / "caltrains" / "google_tokens.json"
+      )
+      val calendarClient = GoogleCalendarClient(
+        "https://www.googleapis.com/calendar/v3"
+      )
+      val accessToken = authClient.getAccessToken()
+      val rttClient =
+        RttClient("https://api.rtt.io/api/v1", config.rttUser, config.rttApiKey)
+      runProcess(config, authClient, calendarClient, rttClient)
+    }

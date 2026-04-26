@@ -11,6 +11,10 @@ import rtt.client.LocationResponseProtocol.format
 import rtt.client.ServiceResponseProtocol.format
 import rtt.Service
 import rtt.Call
+import utils.parseDateTime
+import utils.parseYearMonthDay
+import utils.parseHourMinute
+import scala.annotation.init
 
 class RttClient(baseUrl: String, rttUser: String, rttApiKey: String)
     extends IRttClient {
@@ -32,29 +36,26 @@ class RttClient(baseUrl: String, rttUser: String, rttApiKey: String)
         Right(
           response.services
             .filter(service => service.trainIdentity.isDefined)
-            .map(service =>
+            .map(service => {
+              val runDate = parseYearMonthDay(service.runDate)
+              val depTime = parseHourMinute(
+                service.locationDetail.gbttBookedDeparture
+              ).withDate(runDate.toLocalDate())
+              val depTimeNextDayOffset =
+                service.locationDetail.gbttBookedDepartureNextDay match {
+                  case None    => 0.day
+                  case Some(b) => if b then 1.day else 0.day
+                }
               StationDeparture(
                 service.serviceUid,
-                DateTimeFormat
-                  .forPattern("yyyy-MM-dd")
-                  .parseDateTime(service.runDate),
+                parseYearMonthDay(service.runDate),
                 service.trainIdentity.get,
                 service.locationDetail.destination
                   .map(destination => destination.description),
-                DateTimeFormat
-                  .forPattern("HHmm")
-                  .parseDateTime(service.locationDetail.gbttBookedDeparture)
-                  .withDate(
-                    DateTimeFormat
-                      .forPattern("yyyy-MM-dd")
-                      .parseLocalDate(service.runDate)
-                  ) + (service.locationDetail.gbttBookedDepartureNextDay match {
-                  case None    => 0.day
-                  case Some(b) => if b then 1.day else 0.day
-                }),
+                depTime + depTimeNextDayOffset,
                 service.atocName
               )
-            )
+            })
         )
       }
 
@@ -72,23 +73,14 @@ class RttClient(baseUrl: String, rttUser: String, rttApiKey: String)
       .body
       .flatMap { body =>
         val response = body.parseJson.convertTo[ServiceResponse]
-        val initialDepartureTime =
-          DateTimeFormat
-            .forPattern("HHmm")
-            .parseDateTime(
-              response.locations(0).gbttBookedDeparture.getOrElse("0000")
-            )
-            .withDate(
-              runDate.getYear(),
-              runDate.getMonthOfYear(),
-              runDate.getDayOfMonth()
-            )
+        val initialDepartureTime = parseHourMinute(
+          response.locations(0).gbttBookedDeparture.getOrElse("0000")
+        )
+          .withDate(runDate.toLocalDate())
         Right(
           Service(
             response.serviceUid,
-            DateTimeFormat
-              .forPattern("yyyy-MM-dd")
-              .parseDateTime(response.runDate),
+            parseYearMonthDay(response.runDate),
             response.atocName,
             response.origin.map(pair => pair.description),
             response.destination.map(pair => pair.description),
@@ -116,15 +108,8 @@ class RttClient(baseUrl: String, rttUser: String, rttApiKey: String)
     timeStringOption match {
       case None             => None
       case Some(timeString) =>
-        val planDep =
-          DateTimeFormat
-            .forPattern("HHmm")
-            .parseDateTime(timeString)
-            .withDate(
-              initialDepartureTime.getYear(),
-              initialDepartureTime.getMonthOfYear(),
-              initialDepartureTime.getDayOfMonth()
-            )
+        val planDep = parseHourMinute(timeString)
+          .withDate(initialDepartureTime.toLocalDate())
         Some(
           if planDep < initialDepartureTime then planDep + 1.day
           else planDep

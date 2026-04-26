@@ -6,7 +6,11 @@
 .metals
 .vscode
 target
-project
+
+project/project
+
+# auto generated
+metals.sbt
 
 google_tokens.json
 config.json

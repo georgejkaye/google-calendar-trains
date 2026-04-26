@@ -10,6 +10,10 @@ import rtt.Service
 import google.calendar.Event
 import google.calendar.EventTime
 import google.calendar.Attendee
+import utils.parseYearMonthDay
+import utils.parseYearMonthDayOption
+import utils.parseHourMinute
+import utils.parseHourMinuteOption
 
 val europeLondonTimeZone = DateTimeZone.forID("Europe/London")
 
@@ -34,19 +38,13 @@ def runProcess(
       }
     }
     .flatMap { (googleToken, stationCode) =>
-      DateTimeFormat
-        .forPattern("yyyy-MM-dd")
-        .withZone(europeLondonTimeZone)
-        .parseOption(io.StdIn.readLine("Run date: ")) match {
+      parseYearMonthDayOption(io.StdIn.readLine("Run date: ")) match {
         case None     => Left("Invalid date format, expected yyyy-MM-dd")
         case Some(rd) => Right((googleToken, stationCode, rd))
       }
     }
     .flatMap { (googleToken, stationCode, runDate) =>
-      DateTimeFormat
-        .forPattern("HHmm")
-        .withZone(europeLondonTimeZone)
-        .parseOption(io.StdIn.readLine("Departure time: ")) match {
+      parseHourMinuteOption(io.StdIn.readLine("Departure time: ")) match {
         case None =>
           Left("Invalid time format, expected HHmm")
         case Some(dt) => {
